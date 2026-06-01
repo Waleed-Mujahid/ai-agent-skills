@@ -1,0 +1,9 @@
+{
+  "name": "delegate",
+  "description": "Delegates grunt work (search, review, refactor, tests) to opencode running free LiteLLM models — saves Claude tokens.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Waleed Mujahid (Waleed-Mujahid)"
+  },
+  "commands": ["./delegate.md"]
+}

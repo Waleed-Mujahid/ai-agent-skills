@@ -1,12 +1,21 @@
-[
-  {
-    "name": "delegate",
-    "source": "./skills/delegate",
-    "description": "Delegates grunt work to opencode running free LiteLLM models — saves Claude tokens.",
-    "version": "1.0.0",
-    "author": {
-      "name": "Waleed Mujahid (Waleed-Mujahid)"
-    },
-    "category": "productivity"
-  }
-]
+{
+  "name": "ai-agent-skills",
+  "owner": {
+    "name": "Waleed Mujahid"
+  },
+  "metadata": {
+    "description": "Personal library of AI agent skills for Claude Code and other harnesses."
+  },
+  "plugins": [
+    {
+      "name": "delegate",
+      "source": "./skills/delegate",
+      "description": "Delegates grunt work to opencode running free LiteLLM models — saves Claude tokens.",
+      "version": "1.0.0",
+      "author": {
+        "name": "Waleed Mujahid (Waleed-Mujahid)"
+      },
+      "category": "productivity"
+    }
+  ]
+}

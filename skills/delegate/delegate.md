@@ -117,10 +117,10 @@ opencode_fire(
 
 ```
 Task is code review?
-  → Route A: /review command + minimax-m2.5-free
+  → Route A: /review command + deepseek-v4-flash-free
 
 Task is "find X" / "where is Y" / "how does Z work"?
-  → Route B: explore agent + minimax-m2.5-free
+  → Route B: explore agent + deepseek-v4-flash-free
 
 Task has 2+ independent subtasks?
   → Route C: general agent + groq/qwen/qwen3-32b
@@ -136,10 +136,17 @@ Everything else?
 
 | Complexity | Use Case | providerID | modelID |
 |------------|----------|------------|---------|
-| Simple | grep, search, list files, format | `opencode` | `minimax-m2.5-free` |
-| Medium | review, refactor, test gen, docs | `opencode` | `minimax-m2.5-free` |
-| Code-heavy | code gen, code review, debug | `opencode` | `minimax-m2.5-free` |
+| Simple | grep, search, list files, format | `opencode` | `deepseek-v4-flash-free` |
+| Medium | review, refactor, test gen, docs | `opencode` | `deepseek-v4-flash-free` |
+| Code-heavy | code gen, code review, debug | `opencode` | `deepseek-v4-flash-free` |
 | Complex | architecture, multi-file analysis, hard bugs | `litellm` | `groq/qwen/qwen3-32b` |
+| Complex fallback | if qwen3-32b fails/empty | `litellm` | `groq/llama-3.3-70b-versatile` |
+
+**Dead models (do not use):**
+- `opencode/minimax-m2.5-free` — no longer available (replaced by m3)
+- `litellm/groq/openai/gpt-oss-120b` — returns empty
+- `litellm/groq/meta-llama/llama-4-scout-17b-16e-instruct` — returns empty
+- `litellm/cerebras/*` — inaccessible (payment lapsed)
 
 ## Step 3: Craft Prompt (for Routes B-E)
 

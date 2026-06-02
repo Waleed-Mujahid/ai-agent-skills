@@ -30,15 +30,15 @@ First, classify the task and pick the optimal dispatch method. opencode has spec
 
 ```
 # First fire a session to get sessionId
-opencode_fire(prompt="placeholder", directory=..., providerID=..., modelID=...)
+opencode_fire(prompt="placeholder", directory=<project_dir>, providerID=..., modelID=...)
 
 # Then execute /review command in that session
 opencode_command_execute(
     sessionId="ses_xxx",
     command="review",
     arguments="<target>",    # "pr owner/repo#123" | "branch feat-x" | "" (uncommitted)
-    providerID="litellm",
-    modelID="groq/openai/gpt-oss-120b"
+    providerID="opencode",
+    modelID="deepseek-v4-flash-free"
 )
 ```
 
@@ -56,9 +56,9 @@ Targets for `/review`:
 opencode_fire(
     prompt="<search task>",
     agent="explore",
-    directory="/Users/waleed.mujahid/Documents/workspace",
-    providerID="litellm",
-    modelID="groq/openai/gpt-oss-120b",
+    directory=<project_dir>,
+    providerID="opencode",
+    modelID="deepseek-v4-flash-free",
     title="search: <topic>"
 )
 ```
@@ -73,7 +73,7 @@ Specify thoroughness in prompt: "quick search for...", "thorough analysis of..."
 opencode_fire(
     prompt="<multi-step task>",
     agent="general",
-    directory="/Users/waleed.mujahid/Documents/workspace",
+    directory=<project_dir>,
     providerID="litellm",
     modelID="groq/qwen/qwen3-32b",
     title="analysis: <topic>"
@@ -88,7 +88,7 @@ opencode_fire(
 opencode_fire(
     prompt="<planning task>",
     agent="plan",
-    directory="/Users/waleed.mujahid/Documents/workspace",
+    directory=<project_dir>,
     providerID="litellm",
     modelID="groq/qwen/qwen3-32b",
     title="plan: <topic>"
@@ -102,16 +102,12 @@ opencode_fire(
 opencode_fire(
     prompt="<task>",
     agent="build",
-    directory="/Users/waleed.mujahid/Documents/workspace",
-    providerID="litellm",
+    directory=<project_dir>,
+    providerID=<from model tier table>,
     modelID=<from model tier table>,
     title="<topic>"
 )
 ```
-
-### Route F: `/extract-course-advanced-modules` — Open edX Module Extraction
-**Use when:** need to extract Advanced Module List from Open edX Studio courses.
-**Domain-specific command.**
 
 ### Decision Tree
 
@@ -157,6 +153,14 @@ ALWAYS prepend this preamble:
 ```
 You are a worker agent. Your output is consumed by an orchestrating AI that pays per input token.
 
+Before starting, read any project instruction files that exist in the working directory:
+- CLAUDE.md
+- AGENTS.md
+- GEMINI.md
+- .cursorrules
+- .cursor/rules/ (any .mdc files)
+- .github/copilot-instructions.md
+
 You have access to `gh` CLI for GitHub operations (read-only). Use it freely for:
 - gh pr view, gh pr diff, gh pr list, gh pr checks
 - gh issue view, gh issue list
@@ -185,8 +189,10 @@ Then append the actual task. If the task references specific files, include thei
 
 ## Step 4: Dispatch
 
+`<project_dir>` = the current working directory of the Claude Code session (the project root Claude is running in).
+
 ALWAYS use these fixed params:
-- `directory`: `/Users/waleed.mujahid/Documents/workspace`
+- `directory`: `<project_dir>` — the current Claude session working directory
 - `providerID`: from Step 2
 - `modelID`: from Step 2
 - `title`: short descriptive title (for TUI tracking)
@@ -215,7 +221,7 @@ ALWAYS use these fixed params:
 
 After firing and between wait retries, call:
 ```
-opencode_permission_list(directory="/Users/waleed.mujahid/Documents/workspace")
+opencode_permission_list(directory=<project_dir>)
 ```
 
 ### AUTO-APPROVE (reply: "always"):
@@ -266,8 +272,7 @@ If opencode made file changes, call `opencode_review_changes(sessionId)` for dif
 - **NEVER `opencode_run`** — returns full reasoning
 - **NEVER `opencode_conversation`** — full message history
 - **NEVER do the task yourself if opencode fails** — report session ID and stop
-- **NEVER pass a subfolder as `directory`** — always `/Users/waleed.mujahid/Documents/workspace`. Put the subfolder path in the prompt text instead: "Search in sumac-setup/src/foo for..."
-- Do NOT use opencode for Taiga/Slack MCP tasks — Claude only
-- Do NOT delegate reasoning/planning decisions — Opus/Sonnet only
+- **NEVER pass a subfolder as `directory`** — always use the project root. Put subfolder paths in the prompt text instead.
+- Do NOT delegate reasoning/architecture decisions — use the main model directly
 - Do NOT auto-approve write/edit/destructive bash — escalate
 - Do NOT escape backticks with `\` in heredoc strings — use raw backticks directly

@@ -26,6 +26,7 @@ ai-agent-skills/
 | Skill | File | Description |
 |-------|------|-------------|
 | `delegate` | [skills/delegate/delegate.md](skills/delegate/delegate.md) | Delegates grunt work (search, review, refactor, tests) to opencode running free LiteLLM models. Saves Claude tokens by routing non-reasoning tasks to free models. |
+| `sophia-review` | [skills/sophia-review/sophia-review.md](skills/sophia-review/sophia-review.md) | End-to-end Sophia competency self-review assistant. Phased chat: configures auth + MCPs, harvests a year of evidence (GitHub/Plane/Slack/Calendar/Claude+Cursor sessions) in parallel, builds an evidence map, surfaces next-level rubric differentials, asks targeted gap questions, drafts rubric-aligned answers, and submits + verifies them via the Sophia API. |
 
 ---
 
@@ -43,6 +44,7 @@ ai-agent-skills/
 
 ```shell
 /plugin install delegate@ai-agent-skills
+/plugin install sophia-review@ai-agent-skills
 ```
 
 **Keep up to date:**

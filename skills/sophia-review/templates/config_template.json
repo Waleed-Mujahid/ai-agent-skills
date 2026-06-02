@@ -1,0 +1,21 @@
+{
+  "_comment": "Per-run config at <workdir>/.sophia/config.json (chmod 600, gitignored). REQUIRED from user: user_competency_framework_id (Sophia DevTools -> Network -> `framework/?user_competency_framework_id=XXXX`). AUTO: sophia_user_id (decoded from refresh-token JWT), github_username (gh api user), framework_name/due_date/primary_auditor (from fetched JSON), cycle dates (default 12mo). OPTIONAL: slack_channels, slack_dms, shoutout_urls, teammates, plane_project_id.",
+  "sophia_user_id": 0,
+  "user_competency_framework_id": 0,
+  "framework_name": "Software Engineer",
+  "primary_auditor": "",
+  "due_date": "YYYY-MM-DD",
+  "cycle_start": "YYYY-MM-DD",
+  "cycle_end": "YYYY-MM-DD",
+  "github_username": "",
+  "github_orgs": ["edly-io", "openedx", "overhangio"],
+  "plane_workspace_slug": "arbisoft",
+  "plane_project_id": "",
+  "slack_channels": [],
+  "slack_dms": [],
+  "shoutout_channel": "",
+  "shoutout_urls": [],
+  "teammates": [],
+  "cursor_base_path": "~/Library/Application Support/Cursor/User",
+  "claude_projects_path": "~/.claude/projects"
+}

@@ -16,6 +16,16 @@
         "name": "Waleed Mujahid (Waleed-Mujahid)"
       },
       "category": "productivity"
+    },
+    {
+      "name": "sophia-review",
+      "source": "./skills/sophia-review",
+      "description": "End-to-end Sophia competency self-review assistant — phased chat that harvests a year of evidence, surfaces next-level rubric differentials, drafts rubric-aligned answers, and submits + verifies them via the Sophia API.",
+      "version": "1.0.0",
+      "author": {
+        "name": "Waleed Mujahid (Waleed-Mujahid)"
+      },
+      "category": "productivity"
     }
   ]
 }

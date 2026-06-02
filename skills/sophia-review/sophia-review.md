@@ -144,7 +144,17 @@ each as optional and skippable:
 - "Want me to scan Slack for coordination / mentoring evidence? Paste channel and/or DM ids, or skip." → `slack_channels`, `slack_dms`.
 - "Any shoutouts/kudos this cycle? Paste the **Slack message URLs** — that's all I need (no channel id)." → `shoutout_urls`. (A channel id is optional, only to auto-scan for more.)
 - "Harvest Google Calendar for 1:1 / mentoring / training cadence? (needs the Calendar MCP OAuth'd via `/mcp`)." If yes, ask teammate names for the attendee filter → `teammates`.
-- Tracker: if a Plane MCP is connected, list projects and confirm which (don't ask for a raw project id); for another tracker, ask how to reach it.
+- **Trackers (ask for ALL of them, of any kind).** Don't assume one tool or one board —
+  people on multiple projects have multiple boards, and different teams use different
+  trackers (Plane, **Jira**, **GitHub Projects**, Linear, Trello…). Ask plainly: "Which
+  issue trackers / project boards did you work on this cycle? Link **everything relevant** —
+  list every board across every project, and tell me which tool each is (Plane / Jira /
+  GitHub Projects / other)." For each, capture what's needed to reach it:
+  - **Plane**: if the MCP is connected, list projects and let the user multi-select → `plane_projects` (list of `{id, name}`).
+  - **Jira**: project key(s) + site/base URL (and board ids if they have them) → `jira_boards`.
+  - **GitHub Projects**: org/user + project number(s) — harvest via `gh project item-list` → `github_project_boards`.
+  - **Anything else**: ask how to reach it (URL / API / export) → `other_trackers`.
+  Store each as a **list** — never a single id. Skipped trackers are simply not harvested.
 
 Persist whatever the user gives into `.sophia/config.json`. Skipped sources are simply not harvested.
 
@@ -198,7 +208,37 @@ and submitted; `hold`/`na`/`skip` are left alone (holds still carry forward in P
 > `answers/<id>_<slug>.html` from an earlier run is resumed, not overwritten.
 
 **Gate 0:** `targets.json` written from the user's self-evaluation; auth + data fetch
-confirmed. Write `{"gate0": true}` to `.sophia/progress.json`. Then Phase 1.
+confirmed. Write `{"gate0": true}` to `.sophia/progress.json`. Then Phase 0.6.
+
+### 0.6 — Your achievements brief (user brain-dump, BEFORE harvest)
+
+The harvest only surfaces what's in the tools. It can't know which work *you* consider
+critical, the context behind a PR, the fire you put out verbally, or the impact a ticket
+title doesn't convey. **Give the user an explicit place to tell their own story first** — it
+both fills gaps the tools miss and *steers* the harvest (project names, repos, teammates,
+dates to dig into).
+
+Prompt the user, framed as a free-form dump (no template pressure — you'll structure it
+later):
+
+> Before I go digging, tell me in your own words what you actually did this cycle. Don't
+> worry about format or the rubric — just brain-dump. Especially:
+> - **Biggest things you shipped** — modules, features, migrations, launches (with project/repo names if you remember).
+> - **Critical saves** — production fires, urgent debugging, a release you unblocked, an outage you caught.
+> - **Work you're proud of** that a ticket title wouldn't capture — a redesign, an R&D spike, a tricky integration.
+> - **People you helped** — onboarded, unblocked, mentored, reviewed for (even informally).
+> - **Anything off-tool** — verbal decisions, whiteboard architecture, cross-team coordination, on-call.
+> Names of projects, repos, teammates, and rough dates help me harvest the proof.
+
+Capture the raw answer verbatim to `$WORKDIR/evidence/00_user_brief.md` (one section per
+theme; keep the user's own wording). This file is a **first-class evidence source**: Phase 1
+uses the project/repo/teammate names in it to target the harvest; Phase 2 reads it alongside
+the harvested atoms (the user's claims become atoms to find proof for); Phase 3 turns any
+claim it *couldn't* find a tool artifact for into a targeted "got a link for this?" question.
+
+Accept it incrementally — the user may add more across sessions; append, don't overwrite.
+Skippable, but strongly encouraged ("even three bullets makes the answers much sharper").
+Write `{"brief": true}` to `.sophia/progress.json` once captured. Then Phase 1.
 
 ---
 
@@ -217,7 +257,7 @@ and produces a wrong level assessment. Applies to A, B, C, D, E, F, H, I.
 | A | GitHub authored PRs (config orgs) | `a_github_edly_prs.md` | `gh` + delegate to tag |
 | B | GitHub upstream PRs (non-org) | `b_github_upstream_prs.md` | `gh` + delegate |
 | C | GitHub reviews & PR comments | `c_github_reviews.md` | `gh` |
-| D | Plane work items + activity | `d_plane_tickets.md` | Plane MCP (direct) |
+| D | Tracker work items + activity (**every board the user linked, across all tools**) | `d_tracker_tickets.md` | Plane MCP / `gh project` / Jira API |
 | E | Slack channels | `e_slack_channels.md` | Slack MCP (direct) |
 | F | Slack DMs | `f_slack_dms.md` | Slack MCP (direct) |
 | G | Claude Code sessions | `g_claude_sessions.md` | Bash + delegate to tag |
@@ -227,7 +267,17 @@ and produces a wrong level assessment. Applies to A, B, C, D, E, F, H, I.
 
 Recipes:
 - GitHub: `helpers/harvest_github.sh` (authored/upstream/reviews) — use `gh` CLI, never the GitHub MCP.
-- Plane: `helpers/harvest_plane.py` — paginate to empty; pull `list_work_item_activities` for comment evidence.
+- Trackers (one agent, **every board the user linked, across all tools** → merged into
+  `d_tracker_tickets.md` with `tool` + `board` columns so sources are distinguishable; never
+  harvest just the first board):
+  - **Plane**: `helpers/harvest_plane.py` — loop over every id in `plane_projects`, paginate
+    each to empty, pull `list_work_item_activities` for comment evidence.
+  - **GitHub Projects**: for each in `github_project_boards`,
+    `gh project item-list <number> --owner <org> --format json` (filter to the user's items + cycle dates).
+  - **Jira**: for each in `jira_boards`, query the REST search API
+    (`/rest/api/3/search?jql=assignee=<user> AND updated>=<cycle_start>`) with the user's site + token.
+  - **Other**: harvest per whatever access the user gave in `other_trackers`.
+  Paginate every source to the cycle start.
 - Slack channels/DMs: `helpers/harvest_slack.md` — `mcp__claude_ai_Slack__*` only; paginate via `oldest=<cycle_start_epoch>` + cursor.
 - Calendar: `helpers/harvest_calendar.md` — auth first; filter to teammate attendees + AI/mentoring/1:1/training keywords; capture `htmlLink`; drop standing recurring noise (standup, sprint review, retro).
 - Shoutouts: `helpers/harvest_shoutouts.md` — resolve supplied URLs (`p<ts>` → `<ts>` dotted), capture author + reactions + replies; also search the channel for the user's name.
@@ -263,8 +313,12 @@ URL-shareable — mark Tier B (Drive screenshot during draft).
 
 ## Phase 2 — Evidence map + AI-mentoring cross-cut
 
-Main-model pass (reasoning — do NOT delegate). Read all `evidence/*.md`. For each level-up
-subcategory, find matching atoms and write `$WORKDIR/evidence/10_evidence_map.md`:
+Main-model pass (reasoning — do NOT delegate). Read all `evidence/*.md`, **including
+`00_user_brief.md`** — each claim the user wrote there is an atom you must try to back with a
+harvested artifact (PR/ticket/Slack link). A brief claim with a matched tool artifact is
+strength-3; one you can't link yet becomes a Phase 3 question ("you mentioned X — got a link
+for it?"). For each level-up subcategory, find matching atoms and write
+`$WORKDIR/evidence/10_evidence_map.md`:
 
 ```
 | subcat_id | subcat_title | rubric_quote | atom_source | atom_link | strength | tier |
@@ -297,8 +351,9 @@ order** (Technical Execution → Maturity → Communication → Teamwork):
 3. **Ask targeted gap questions** only where evidence is thin or the rubric needs human context the data can't supply. Use `AskUserQuestion`. Examples generated from the gap:
    - "L3 Code Architecture wants an *owned module*. The harvest shows the data-migrations plugin PRs — were you the sole owner? Anyone else commit design?"
    - "Mentorship L_target wants you helping others — who did you onboard/unblock this cycle, and is there a PR/Slack thread?"
-4. **Always ask about shoutouts** explicitly (people forget them; they're strength-3 by definition): "Any kudos/shoutouts this cycle — Slack, email, a manager mention? Paste links or names."
-5. Fold the answers back into `10_evidence_map.md` as new atoms.
+4. **Chase the unproven brief claims.** For every claim in `00_user_brief.md` the harvest couldn't link to an artifact, ask the user for the proof: "You mentioned [the X migration / unblocking Y] — is there a PR, ticket, or Slack thread I can cite?" A claim with no artifact can't anchor a rubric line.
+5. **Always ask about shoutouts** explicitly (people forget them; they're strength-3 by definition): "Any kudos/shoutouts this cycle — Slack, email, a manager mention? Paste links or names."
+6. Fold the answers back into `10_evidence_map.md` as new atoms.
 
 **Gate 3:** Confirm every level-up subcat now has enough evidence (or the user accepts holding it). Then Phase 4.
 
@@ -388,6 +443,7 @@ calibration. Bump the changelog.
 
 | Version | Date | Delta |
 |---------|------|-------|
+| v1.5 | 2026-06-02 | New **Phase 0.6 — user achievements brief**: the user brain-dumps their own critical work / proud work / people helped before harvest, captured verbatim to `evidence/00_user_brief.md`. It steers the harvest and its claims become atoms Phase 2 must back with artifacts (unproven ones → Phase 3 questions). **Multi-tracker harvest**: trackers are no longer assumed to be a single Plane board — Phase 0.4 asks the user to link *all* relevant boards across *all* tools (Plane / Jira / GitHub Projects / other), stored as lists (`plane_projects`, `jira_boards`, `github_project_boards`, `other_trackers`); agent D loops every board across every tool into `d_tracker_tickets.md`. `progress.py` tracks the brief milestone. |
 | v1.4 | 2026-06-02 | Realistic targets, not blanket +1: `rubric_delta.py` proposes `raise` (≤L2→next), `stretch` (L3→L4, held by default, evidence-gated at Gate 2), `fill`/`baseline`. Self-explanatory **Action** column + default-plan summary line. Gate 0 is now an explicit **self-evaluation**: user sets the target level per subcat (by name), persisted to `.sophia/targets.json`; every downstream phase reads it. |
 | v1.3 | 2026-06-02 | Resumable across chats: `progress.py` inspects the workdir (✅/⬜ milestones) and prints `RESUME AT:`; new Phase 0.0 runs it first and jumps to the right phase without re-asking. Gates write `.sophia/progress.json` markers. |
 | v1.2 | 2026-06-02 | Existing answers no longer ignored. `prev_answers.py` dumps each subcat's FULL last-cycle answer to `answers/_prev/`; Phase 4 reads it so the drafter improves on the complete prior text (not the 600-char snippet). Resume guard: existing `answers/<id>_<slug>.html` is loaded + keep/revise/redraft, never silently overwritten. Hold-subcat carry-forward (default `resubmit_holds=true`) so untouched subcats don't blank out; Phase 5 submits all approved files in `answers/` (excl. `_prev/`). |

@@ -1,5 +1,5 @@
 {
-  "_comment": "Per-run config at <workdir>/.sophia/config.json (chmod 600, gitignored). REQUIRED from user: user_competency_framework_id (Sophia DevTools -> Network -> `framework/?user_competency_framework_id=XXXX`). AUTO: sophia_user_id (decoded from refresh-token JWT), github_username (gh api user), framework_name/due_date/primary_auditor (from fetched JSON), cycle dates (default 12mo). OPTIONAL: slack_channels, slack_dms, shoutout_urls, teammates, plane_project_id.",
+  "_comment": "Per-run config at <workdir>/.sophia/config.json (chmod 600, gitignored). REQUIRED from user: user_competency_framework_id (Sophia DevTools -> Network -> `framework/?user_competency_framework_id=XXXX`). AUTO: sophia_user_id (decoded from refresh-token JWT), github_username (gh api user), framework_name/due_date/primary_auditor (from fetched JSON), cycle dates (default 12mo). OPTIONAL: slack_channels, slack_dms, shoutout_urls, teammates, plane_projects (LIST — multi-board is common for people on several projects; each entry {\"id\": \"...\", \"name\": \"...\"}).",
   "sophia_user_id": 0,
   "user_competency_framework_id": 0,
   "framework_name": "Software Engineer",
@@ -10,7 +10,10 @@
   "github_username": "",
   "github_orgs": ["edly-io", "openedx", "overhangio"],
   "plane_workspace_slug": "arbisoft",
-  "plane_project_id": "",
+  "plane_projects": [],
+  "github_project_boards": [],
+  "jira_boards": [],
+  "other_trackers": [],
   "slack_channels": [],
   "slack_dms": [],
   "shoutout_channel": "",

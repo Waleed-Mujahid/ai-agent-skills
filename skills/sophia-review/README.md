@@ -8,8 +8,10 @@ helper scripts and the auth model.
 
 ```
 0 Preflight + Auth + Discovery   MCP checklist, delegate offer, workdir, ID discovery,
-                                 refresh-token bootstrap, fetch Sophia data, rubric delta
-1 Harvest (parallel bg agents)   GitHub / Plane / Slack / Calendar / Claude + Cursor sessions
+                                 refresh-token bootstrap, fetch Sophia data, rubric delta,
+                                 link all trackers (Plane/Jira/GitHub Projects/…)
+0.6 User achievements brief      user brain-dumps own critical/proud work → steers harvest
+1 Harvest (parallel bg agents)   GitHub / trackers (all boards) / Slack / Calendar / sessions
 1.5 Coverage audit + backfill    month histogram catches early-stopped pagination
 2 Evidence map + AI cross-cut    atoms -> rubric lines, strength + proof-tier
 3 Differentials + questions       show L_current vs L_target, ask targeted gap questions

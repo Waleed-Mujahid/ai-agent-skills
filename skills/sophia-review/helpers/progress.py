@@ -59,9 +59,10 @@ def main():
     have_delta = _exists_nonempty(ev / "00_rubric_delta.md")
     have_prev = (ans / "_prev").exists() and any((ans / "_prev").glob("*.html"))
     have_targets = _exists_nonempty(sd / "targets.json")
+    have_brief = _exists_nonempty(ev / "00_user_brief.md")
 
     harvest_files = ["a_github_edly_prs.md", "b_github_upstream_prs.md", "c_github_reviews.md",
-                     "d_plane_tickets.md", "e_slack_channels.md", "f_slack_dms.md",
+                     "d_tracker_tickets.md", "e_slack_channels.md", "f_slack_dms.md",
                      "g_claude_sessions.md", "h_cursor_sessions.md", "i_calendar_meetings.md",
                      "j_shoutouts.md"]
     harvested = [f for f in harvest_files if _exists_nonempty(ev / f)]
@@ -78,6 +79,7 @@ def main():
     print(f"{mark(have_delta)} Phase 0.5  rubric delta built")
     print(f"{mark(have_prev)} Phase 0.5  previous answers dumped (answers/_prev/)")
     print(f"{mark(have_targets)} Gate 0     targets confirmed (.sophia/targets.json)")
+    print(f"{mark(have_brief)} Phase 0.6  user achievements brief (evidence/00_user_brief.md)")
     print(f"{mark(len(harvested) >= 3)} Phase 1    evidence harvested: {len(harvested)}/{len(harvest_files)} sources {harvested}")
     print(f"{mark(have_map)} Phase 2    evidence map ({_count_lines(ev/'10_evidence_map.md')} rows)")
     print(f"{mark(bool(drafts))} Phase 4    drafts written: {len(drafts)} {drafts if len(drafts)<=12 else drafts[:12]+['…']}")
@@ -93,6 +95,8 @@ def main():
         nxt = "Phase 0.5 — build rubric delta"
     elif not have_targets:
         nxt = "Gate 0 — present the table, capture the user's target per subcat, write targets.json"
+    elif not have_brief:
+        nxt = "Phase 0.6 — capture the user's own achievements brief (evidence/00_user_brief.md)"
     elif len(harvested) < 3:
         nxt = "Phase 1 — parallel evidence harvest"
     elif not have_map:

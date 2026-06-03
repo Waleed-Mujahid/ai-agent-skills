@@ -51,7 +51,7 @@ As you pass each gate, write a marker to `$WORKDIR/.sophia/progress.json` (e.g.
 ## Phase 0 — Preflight, Auth, Discovery setup
 
 Create the phase checklist with `TaskCreate` so the user sees the whole arc:
-`Preflight → Auth → Fetch Sophia data → Harvest evidence → Evidence map → Differentials & questions → Draft → Submit`.
+`Preflight → Auth → Fetch Sophia data → Brief → Harvest evidence → Evidence map → Differentials & questions → Draft → Unbiased audit → Submit`.
 
 **Ask the user for as little as possible.** Auto-discover everything you can; default the
 rest; only the **two things below are genuinely required** (a token and one id). Make every
@@ -198,9 +198,18 @@ it** to `$WORKDIR/.sophia/targets.json`:
 ```json
 { "<subcat_id>": {"name": "...", "current": 2, "target": 3, "decision": "raise"} }
 ```
-`decision` ∈ `raise | stretch | hold | fill | baseline | na | skip`. **Every downstream phase
-reads `targets.json`** — only subcats the user chose to target get harvested-against, drafted,
-and submitted; `hold`/`na`/`skip` are left alone (holds still carry forward in Phase 4).
+`decision` ∈ `raise | stretch | hold | hold_redraft | fill | baseline | na | skip`. **Every
+downstream phase reads `targets.json`** — only subcats the user chose to target get
+harvested-against, drafted, and submitted; `hold`/`na`/`skip` are left alone (holds still carry
+forward in Phase 4). Use **`hold_redraft`** when the user wants to keep the *level* but rewrite
+the answer fresh with this cycle's evidence (distinct from `hold` = carry `_prev` verbatim) —
+common for soft-skill subcats where last year's text is thin but the level isn't changing.
+
+> **Core Values needs the organisation's actual values doc.** If the framework has a "Core
+> Values" subcat, ask the user to paste their company's core-values document, then structure
+> the answer around the *named* values, mapping a concrete evidence atom to each one (on a real
+> run: Trust/Effort/Value/Collaboration/Excellence, each backed by a specific PR, shoutout or
+> award). A generic "I live the values" answer scores low.
 
 > **Existing answers are read, not ignored.** Last year's full answer per subcat is in
 > `answers/_prev/<id>_<slug>.html`. Raise/stretch targets improve on it; hold subcats carry it
@@ -248,9 +257,23 @@ Spawn harvest agents **in parallel, in the background** (`Agent` with `run_in_ba
 true`, or `Explore` for read-only sweeps). Each writes ONE file to `$WORKDIR/evidence/` and
 reports back a one-line summary. **Never read the full output files into context.**
 
+**⚠ RE-CHECK MCP AVAILABILITY HERE (not just at preflight).** Slack/Plane/Calendar MCPs that
+were "deferred" or absent at Phase 0 often become available once the user reconnects one
+mid-session (a `claude mcp add`, an OAuth via `/mcp`). Before deciding a source is
+unharvestable, try a cheap probe (`mcp__plane-arbisoft__get_me`, a 1-event calendar list, a
+1-message channel read). If it now works, harvest it — don't carry forward a stale "deferred"
+note from a prior run.
+
 **⚠ PAGINATION CONTRACT (critical):** every harvest agent paginates to the cycle START or
 an empty page — never stop after N pages. Stopping early skews evidence to recent months
 and produces a wrong level assessment. Applies to A, B, C, D, E, F, H, I.
+
+**⚠ LARGE MCP RESULTS → FILE, NEVER INTO CONTEXT.** Plane `list_work_items` and Calendar
+`list_events` over a 12-month range routinely exceed the tool-result token cap and get spilled
+to a `tool-results/*.txt` file. Do **not** Read that file into context — process it with
+`jq`/`python` (probe structure, then extract slices) and write only the distilled markdown to
+`evidence/`. Plane/Calendar JSON often contains unescaped control characters that break `jq` →
+parse with `python3 -c "json.load(open(f), strict=False)"` instead.
 
 | Agent | Source | Output | Tool |
 |-------|--------|--------|------|
@@ -263,7 +286,19 @@ and produces a wrong level assessment. Applies to A, B, C, D, E, F, H, I.
 | G | Claude Code sessions | `g_claude_sessions.md` | Bash + delegate to tag |
 | H | Google Calendar events | `h_cursor_sessions.md`→`i_calendar_meetings.md` | Calendar MCP |
 | I | Slack shoutouts | `j_shoutouts.md` | Slack MCP |
+| K | **Code-artifact deep-dives** (flagship modules the user named in the brief) | `k_<artifact>_deepdive.md` | `Agent` (general-purpose, sonnet) reading the local repo + its PRs via `gh` |
 | — | Cursor sessions | `h_cursor_sessions.md` | `helpers/harvest_cursor.py` |
+
+**Agent K is the single highest-value addition** (proven on a real run). For each flagship
+module the user calls out in `00_user_brief.md` (a plugin they own, a migration engine, a
+feature shipped across repos), spawn one background `general-purpose` sonnet agent to **read
+the actual code** in the local repo plus its PRs (`gh pr view`), and return a structured file:
+`## Architecture / ## Security-correctness design / ## Scale numbers (LOC, files, commands,
+tables, tenants) / ## Tests / ## Rubric mapping (subcat | concrete evidence | artifact)`. It
+returns only a 4-6 line summary; the file feeds Phase 2/4. This is what turns "I own the
+migration plugin" into "21,346 LOC, 15 commands, ~346 tables, 12+ tenants, AST-based
+cross-tenant security tests" — the concrete, scannable detail auditors reward. Run 2-4 of
+these in parallel for the user's top modules.
 
 Recipes:
 - GitHub: `helpers/harvest_github.sh` (authored/upstream/reviews) — use `gh` CLI, never the GitHub MCP.
@@ -271,7 +306,20 @@ Recipes:
   `d_tracker_tickets.md` with `tool` + `board` columns so sources are distinguishable; never
   harvest just the first board):
   - **Plane**: `helpers/harvest_plane.py` — loop over every id in `plane_projects`, paginate
-    each to empty, pull `list_work_item_activities` for comment evidence.
+    each to empty, pull `list_work_item_activities` for comment evidence. **Known quirks
+    (self-hosted Plane, proven on a real run):**
+    - `list_work_items` **with filter args** (`assignee_ids`, `state_ids`, …) hits the
+      advanced-search endpoint and returns **HTTP 403**. Fall back to the plain list
+      (`project_id` + `per_page` + `order_by` only) and **filter client-side**.
+    - The MCP wrapper **drops `next_cursor`**, so you can't paginate a full year through the
+      MCP. For a complete cycle, harvest via the **REST API with a PAT**:
+      `curl -H "X-Api-Key: <PLANE_TOKEN>" "https://<host>/api/v1/workspaces/<ws>/projects/<proj>/issues/?per_page=100&cursor=<c>"`
+      following `next_cursor`/`next_page_results` until done.
+    - With `expand=assignees` the assignee field is **objects** (`email`/`display_name`);
+      without it, bare UUIDs. Filter by the user's **email** to be robust to either shape.
+    - **SSL:** macOS system Python 3.8 fails cert verification against the self-hosted host,
+      and disabling TLS verification (`CERT_NONE`) is **blocked by the sandbox**. Use `curl`
+      (system cert store) for the fetch, then parse the saved pages with python.
   - **GitHub Projects**: for each in `github_project_boards`,
     `gh project item-list <number> --owner <org> --format json` (filter to the user's items + cycle dates).
   - **Jira**: for each in `jira_boards`, query the REST search API
@@ -279,7 +327,7 @@ Recipes:
   - **Other**: harvest per whatever access the user gave in `other_trackers`.
   Paginate every source to the cycle start.
 - Slack channels/DMs: `helpers/harvest_slack.md` — `mcp__claude_ai_Slack__*` only; paginate via `oldest=<cycle_start_epoch>` + cursor.
-- Calendar: `helpers/harvest_calendar.md` — auth first; filter to teammate attendees + AI/mentoring/1:1/training keywords; capture `htmlLink`; drop standing recurring noise (standup, sprint review, retro).
+- Calendar: `helpers/harvest_calendar.md` — auth first; filter to teammate attendees + AI/mentoring/1:1/training keywords; capture `htmlLink`; drop standing recurring noise (standup, sprint review, retro). **Caveats from a real run:** `list_events` with `fullText` caps around 50 results and matches broadly (title/desc/attendees), so per-person recurring-1:1 *counts* are unreliable — do **not** assert a precise cadence number (e.g. "52 1:1s with X"). Use the calendar for **headline, verifiable events** instead: the org-wide training with its **guest headcount** (a strong Speaking/Mentorship/Continuous-Learning atom — screenshot the attendee count), and a soft "regular 1:1/pairing cadence with multiple teammates". Round-number attendee counts must come from the event itself, not an estimate.
 - Shoutouts: `helpers/harvest_shoutouts.md` — resolve supplied URLs (`p<ts>` → `<ts>` dotted), capture author + reactions + replies; also search the channel for the user's name.
 - Cursor: `python3 "$SKILL_DIR/helpers/harvest_cursor.py" "<cursor_base>" "$WORKDIR/evidence/cursor_sessions.jsonl"` then tag into `h_cursor_sessions.md`.
 - Claude sessions: `find ~/.claude/projects -name '*.jsonl' -newermt <cycle_start> -not -newermt <cycle_end>`; per file extract first user message + turn count + mtime; keep high-signal (≥30 turns OR keywords huddle/help/debug/migration/upstream/mentor); delegate tagging in batches ≤10.
@@ -334,10 +382,18 @@ Then build `$WORKDIR/evidence/11_ai_mentoring_map.md` (schema in
 (`| date | atom_ref | type | mentee | topic | outcome | subcat_tags |`). This angle feeds
 Initiative, Mentorship, Coding Workflow, Continuous Learning, Core Values.
 
-**Gate 2 — re-decide stretches here.** Show per-subcategory atom counts (strength-3 / total).
-Confirm each `raise` has enough; for each provisional `stretch`, decide go/hold based on
-whether out-of-team recognition exists. Finalize the target list (update `.sophia/delta.json`
-if a stretch is dropped). Then Phase 3.
+**Gate 2 — re-decide targets in BOTH directions here.** Show per-subcategory atom counts
+(strength-3 / total). Then:
+- Confirm each `raise` has enough evidence.
+- For each provisional `stretch`, decide go/hold on whether out-of-team recognition exists.
+- **Re-decide UP, not only down.** When the harvest turns up *more* than the Gate-0 plan
+  assumed, propose raising the target. Real examples from a run: Mentorship planned as an L1
+  baseline but the harvest showed onboarding a teammate to independent PRs + an org-wide
+  training + cross-team help → raised to L3; Core Values planned L2 but an org "Team Champ"
+  award explicitly citing collaboration/excellence → raised to L3. The Gate-0 plan is a floor,
+  not a ceiling.
+
+Finalize the target list (update `.sophia/delta.json` / `targets.json`). Then Phase 3.
 
 ---
 
@@ -372,14 +428,24 @@ Walk subcats in weight-descending order. Slug = lowercase name with non-alphanum
 
 - **Level-up target** (current < target): draft an improved answer.
   1. Print the rubric delta (L_current vs L_target) + the atoms being used + the full `_prev` answer.
-  2. Draft with the **mandatory template** (`templates/answer_template.md`):
+  2. **Write to the LITERAL target-level rubric phrase.** Quote the exact target sentence and
+     make the answer satisfy *those words*, not the adjacent idea. Level definitions can be
+     counterintuitive — on a real run, Breadth **L4** = "experience either on the frontend OR
+     the backend with multiple (>2) frameworks" (depth on *one* side), while the both-sides
+     framing is actually the **L3** definition; a draft written to "I do frontend AND backend"
+     scores L3, not L4. Read the target phrase literally before drafting and again after.
+  3. Draft with the **mandatory template** (`templates/answer_template.md`):
      > During [period/project], I [action], which [result]. This outcome aligns with [goal].
      - 2–4 paragraphs, varied lengths; each paragraph = one concrete atom + impact.
-     - HTML (`<p>`, `<strong>`, `<a href>`, `<code>`, `<ul>`). Prefer bulleted `<ul>` when citing multiple PRs/repos — bullets are scannable evidence.
-     - Cite mostly **Tier A** links. Tier B/C go in an optional `drive_bundle/<id>_<slug>/` for screenshots.
+     - HTML (`<p>`, `<strong>`, `<a href>`, `<code>`, `<ul>`). Prefer bulleted `<ul>` when citing multiple PRs/repos — bullets are scannable evidence that save the auditor time.
+     - **Hyperlink EVERY artifact, and name what each one did.** The auditor reads the answer, not your Drive — so every PR/doc/issue/shoutout goes inline as an `<a href>`, and for upstream/external PRs say *which problem each one solved* (e.g. "removed the `parsel` dependency that broke the XBlock on Sumac, resolving help-wanted issue #197"). A bare "I contributed to 5 repos" with two links is weaker than five named, linked, problem-described bullets. Two answers in a category with **zero links** stand out as the weakest — give every answer ≥2 inline links.
+     - **De-jargon — write verbose, plain explanations, not insider shorthand.** An impartial auditor stumbles on un-explained internals. Explain the *what and why*, not the mechanism name: say "the same code runs across dev/stage/prod because it reads its database connections from config" — not "`plugin_settings()` injects 11 aliases into `settings.DATABASES` at load time". Define a term the first time ("idempotent: re-running skips data already written, so a cutover resumes safely"). Split any sentence over ~30 words.
+     - **Don't recycle the same unlinked claim across answers**, and **don't carry forward unverifiable precise numbers** from `_prev`. A claim repeated verbatim in three answers with no link (real run: "X and Y consult me on LTI" appeared 3×) amplifies auditor doubt instead of reinforcing — link a shared claim **once** (or to its Drive screenshot) and vary the evidence per answer. If `_prev` asserts exact counts you can't re-verify this cycle ("43 sessions", "52 1:1s"), soften to a defensible range or cite the artifacts you *can* link. Trim unverifiable self-praise tails ("the VP replied 'Nice.'", "caught by me before anyone flagged it") — they read as padding.
+     - Cite **Tier A** links inline. Tier B/C (private DMs, IDE/Claude/Cursor sessions, calendar headcount, git terminal) can't be public-linked → reference them with the single `DRIVE_FOLDER_URL` placeholder + an `SS-NN` code (see the Drive section below), and the user swaps one URL at the end.
      - **VOICE:** drop banned words (leverage, utilize, robust, seamlessly, transformative, furthermore, moreover, proven track record, …). No Oxford comma. Don't open with "I am writing to…". Be confident and technical; surface architecture decisions, scale numbers, production impact. **Never admit weakness** (auditors score against the rubric).
 - **MUST-FILL** (no `_prev` file, e.g. a brand-new subcategory): draft from scratch with the same template + atoms. If the subcat is genuinely not applicable (e.g. a mobile-dev criterion for a backend engineer), ask the user before writing — they may want to leave it blank.
 - **Hold** (already at/above target, not being raised): **carry the `_prev` answer forward** so it isn't lost (see policy note below). Offer a light refresh — fold in any new strength-3 atom from this cycle — but keep the substance. Default action: reuse `_prev` verbatim unless the user wants the refresh.
+- **`hold_redraft`** (keep the level, rewrite fresh): the user wants the same level but a new answer built on this cycle's evidence — draft it like a level-up target (template + atoms + hyperlinks), just aimed at holding the current level rather than raising it. Don't reuse `_prev` verbatim.
 
 3. Show the draft (or the carried-forward text). **Wait for confirmation** (unless the user said "draft all, I'll review at the end").
 4. On approval, save to `$WORKDIR/answers/<id>_<slug>.html`.
@@ -390,7 +456,47 @@ Walk subcats in weight-descending order. Slug = lowercase name with non-alphanum
 > skip holds instead — set that decision at Gate 4 and note it in `.sophia/config.json`
 > (`"resubmit_holds": false`).
 
-**Gate 4:** Every subcat is either drafted/approved (level-up + MUST-FILL), carried-forward (hold), or explicitly skipped. Then Phase 5.
+### Drive evidence — ONE flat folder, and proof lives IN the answer
+
+The auditor reads the **answer**, never your Drive. So the goal is to put as much proof as
+possible *inline as public hyperlinks*, and use Drive only for what genuinely can't be linked.
+**Do not build per-subcategory Drive folders** (over-engineered — a real run found nobody
+opens 23 subfolders). Instead:
+
+- Maintain **one** flat folder `$WORKDIR/drive_evidence/` with a `_INDEX.md` screenshot
+  checklist. Each row = an `SS-NN` code, what to capture, the source to screenshot from (e.g.
+  the Slack DM URL), and which answers reference it.
+- Only these go to Drive (un-hyperlinkable): **private Slack DMs, Claude/Cursor session
+  transcripts, the calendar event's guest headcount, a git terminal showing rebase/stash**.
+  Everything else (PRs, docs, public Slack shoutout permalinks, GitHub `reviewed-by:` search)
+  is linked inline and needs **no** screenshot.
+- In answers, reference a screenshot as `<a href="DRIVE_FOLDER_URL">… (SS-NN)</a>`. The user
+  uploads the one folder, shares its URL, and you do a **single global replace** of
+  `DRIVE_FOLDER_URL` across `answers/*.html`. The `SS-NN` in the link text tells the auditor
+  which file to open.
+
+**Gate 4:** Every subcat is either drafted/approved (level-up + MUST-FILL), carried-forward (hold), or explicitly skipped. Then Phase 4.5.
+
+---
+
+## Phase 4.5 — Unbiased auditor pass (do this BEFORE submitting)
+
+Drafts written by the same context that gathered the evidence are biased — they read as
+complete to their author and hide jargon, over-claims and rubric-fit misses. **Spawn one
+impartial auditor subagent** (`Agent`, opus, fresh context) that has NOT seen the harvest, and
+have it score the drafts like a real Sophia auditor who *lowers* scores for vague,
+unsupported, or confusingly-written claims. Give it only: the rubric file
+(`evidence/00_rubric_delta.md`) and the answer files with their target levels. Ask for, per
+answer: **verdict** (CLEARS / BORDERLINE / FALLS SHORT vs the target), **rubric-fit** (does the
+text satisfy the *literal* target phrase?), **clarity problems** (quote jargon/mumbo-jumbo a
+non-author would stumble on), **unsupported claims** (asserted numbers with no link), **the one
+evidence gap to close**, and **cross-cutting issues** (recycled claims, asserted precision,
+link-less answers, unverifiable self-praise).
+
+This pass caught real, material defects on its run: an L4 answer written to the wrong rubric
+phrase, the same unlinked claim recycled across three answers, two answers with zero links, and
+several run-on jargon sentences. Fold its feedback back into the drafts, then re-run it if the
+changes were large. Only then go to Phase 5.
 
 ---
 
@@ -411,6 +517,10 @@ drops some malformed payloads — the verify step catches it). Exit 0 = stored &
 
 Show a dry-run (list the `answers/*.html` files + html lengths, `_prev/` excluded) and get an
 explicit "submit" before sending.
+
+**Before submitting:** grep the `answers/*.html` for a leftover `DRIVE_FOLDER_URL` placeholder.
+If any remain, the user hasn't shared the Drive folder yet — get the URL and do the global
+replace first, or those links submit broken.
 
 **Final validation pass** after all submissions:
 1. Re-fetch the framework (`sophia_api.py --workdir "$WORKDIR"`).
@@ -443,6 +553,7 @@ calibration. Bump the changelog.
 
 | Version | Date | Delta |
 |---------|------|-------|
+| v1.6 | 2026-06-03 | Folded in lessons from a full real run. **New Phase 4.5 — unbiased auditor pass**: a fresh-context opus subagent scores the drafts against the rubric and flags jargon / unsupported claims / rubric-fit misses before submit (caught an L4 answer written to the wrong rubric phrase, recycled unlinked claims, link-less answers). **New harvest Agent K — code-artifact deep-dives**: background sonnet agents read the user's flagship local repos + PRs and return scale/architecture/security/rubric-mapped evidence (turns "I own the plugin" into "21k LOC, 15 commands, 346 tables, 12 tenants"). **Drive simplified to ONE flat folder** (`drive_evidence/` + `_INDEX.md` SS-codes) — proof lives inline in answers as hyperlinks; only un-linkable DMs/sessions/headcount/git-terminal get a screenshot, referenced via a single `DRIVE_FOLDER_URL` placeholder swapped at the end. **Drafting rules hardened**: write to the *literal* target rubric phrase (level defs can be counterintuitive); hyperlink every artifact and name the problem each solved; de-jargon into plain verbose prose; never recycle the same unlinked claim across answers or carry forward unverifiable precise counts; trim self-praise tails. **Gate 2 re-decides targets UP too** (Mentorship L1→L3, Core Values L2→L3 when evidence exceeds the plan). **Plane/Calendar harvest quirks documented**: filtered `list_work_items`→403 (use plain list + client filter or REST PAT; MCP drops cursor; control-char JSON needs python `strict=False`; curl for self-hosted TLS); calendar `fullText` caps ~50 and can't give reliable 1:1 counts → use headline events + headcounts. **Re-check MCP availability at Phase 1** (deferred MCPs come online mid-session). New `hold_redraft` decision; Core Values needs the org values doc. |
 | v1.5 | 2026-06-02 | New **Phase 0.6 — user achievements brief**: the user brain-dumps their own critical work / proud work / people helped before harvest, captured verbatim to `evidence/00_user_brief.md`. It steers the harvest and its claims become atoms Phase 2 must back with artifacts (unproven ones → Phase 3 questions). **Multi-tracker harvest**: trackers are no longer assumed to be a single Plane board — Phase 0.4 asks the user to link *all* relevant boards across *all* tools (Plane / Jira / GitHub Projects / other), stored as lists (`plane_projects`, `jira_boards`, `github_project_boards`, `other_trackers`); agent D loops every board across every tool into `d_tracker_tickets.md`. `progress.py` tracks the brief milestone. |
 | v1.4 | 2026-06-02 | Realistic targets, not blanket +1: `rubric_delta.py` proposes `raise` (≤L2→next), `stretch` (L3→L4, held by default, evidence-gated at Gate 2), `fill`/`baseline`. Self-explanatory **Action** column + default-plan summary line. Gate 0 is now an explicit **self-evaluation**: user sets the target level per subcat (by name), persisted to `.sophia/targets.json`; every downstream phase reads it. |
 | v1.3 | 2026-06-02 | Resumable across chats: `progress.py` inspects the workdir (✅/⬜ milestones) and prints `RESUME AT:`; new Phase 0.0 runs it first and jumps to the right phase without re-asking. Gates write `.sophia/progress.json` markers. |

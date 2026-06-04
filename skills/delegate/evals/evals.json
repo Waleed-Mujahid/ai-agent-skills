@@ -1,0 +1,26 @@
+{
+  "skill_name": "delegate",
+  "evals": [
+    {
+      "id": 0,
+      "name": "codebase-search-route-b",
+      "prompt": "Where's the modulestore migration command in the sumac-setup repo, and what other management commands live in the same directory? Give me the file path and the list.",
+      "expected_output": "Delegates to opencode (explore agent, deepseek). Returns the path sumac-setup/src/edlysaas-data-migrations/edlysaas_data_migrations/management/commands/migrate_modulestore.py and a list of sibling commands. Lean structured answer, not a token-heavy dump.",
+      "files": []
+    },
+    {
+      "id": 1,
+      "name": "code-review-route-a",
+      "prompt": "Review the most recent commit in the ai-agent-skills repo (~/Documents/workspace/ai-agent-skills) and tell me if there are any issues.",
+      "expected_output": "Delegates via the /review command (Route A) against commit HEAD in that repo. Returns a concise review verdict, not the raw diff echoed back.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "multi-file-compare-route-ce",
+      "prompt": "Compare migrate_modulestore.py and migrate_credentials_tenant_data.py in the sumac-setup data-migrations commands dir — what do they share and where do they differ?",
+      "expected_output": "Delegates a multi-file analysis (general/build agent). Returns a tight comparison (shared structure, differing logic) under the structured-answer format.",
+      "files": []
+    }
+  ]
+}

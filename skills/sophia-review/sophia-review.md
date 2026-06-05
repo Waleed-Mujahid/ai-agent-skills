@@ -1,6 +1,6 @@
 ---
 name: sophia-review
-description: "End-to-end Sophia competency self-review assistant. Runs as a phased chat: configures MCPs + auth, discovers where you stand, harvests a year of evidence from GitHub/Plane/Slack/Calendar/Claude+Cursor sessions in parallel background agents, builds an evidence map, surfaces L2→L3 (next-level) differentials, asks targeted questions to fill gaps, drafts rubric-aligned answers, and submits + verifies them via the Sophia API. Use when someone needs to write or improve their Sophia self-review."
+description: "End-to-end assistant for writing a Sophia competency self-review — the self-evaluation employees fill out on platformsophia.com against their competency framework. Runs as a phased chat: configures auth + MCPs, fetches your rubric, harvests a year of evidence from GitHub/trackers/Slack/Calendar/Claude+Cursor sessions in parallel, maps it to rubric levels, surfaces next-level (e.g. L2→L3) differentials, drafts rubric-aligned answers, and submits + verifies them via the Sophia API. Use whenever someone needs to write, improve, draft, redo, or fill out their Sophia / competency self-review, performance self-assessment, or annual self-evaluation — even if they don't say the word 'Sophia'. NOT for code review, PR review, document review, or reviewing someone else's work."
 argument-hint: "(no args — workdir is always ~/Documents/sophia-review)"
 allowed-tools: Bash, Read, Write, Edit, Agent, TaskCreate, TaskUpdate, TaskList, AskUserQuestion, mcp__claude_ai_Slack__slack_read_channel, mcp__claude_ai_Slack__slack_read_thread, mcp__claude_ai_Slack__slack_search_public_and_private, mcp__claude_ai_Slack__slack_search_public, mcp__claude_ai_Slack__slack_read_user_profile, mcp__claude_ai_Slack__slack_get_reactions, mcp__claude_ai_Google_Calendar__list_calendars, mcp__claude_ai_Google_Calendar__list_events, mcp__claude_ai_Google_Calendar__get_event, mcp__plane-arbisoft__list_work_items, mcp__plane-arbisoft__retrieve_work_item_by_identifier, mcp__plane-arbisoft__list_work_item_activities
 ---
@@ -260,13 +260,15 @@ reports back a one-line summary. **Never read the full output files into context
 **⚠ RE-CHECK MCP AVAILABILITY HERE (not just at preflight).** Slack/Plane/Calendar MCPs that
 were "deferred" or absent at Phase 0 often become available once the user reconnects one
 mid-session (a `claude mcp add`, an OAuth via `/mcp`). Before deciding a source is
-unharvestable, try a cheap probe (`mcp__plane-arbisoft__get_me`, a 1-event calendar list, a
+unharvestable, try a cheap probe (your tracker MCP's whoami — e.g. `mcp__plane-arbisoft__get_me`
+on Arbisoft's Plane; substitute your own MCP name — a 1-event calendar list, a
 1-message channel read). If it now works, harvest it — don't carry forward a stale "deferred"
 note from a prior run.
 
 **⚠ PAGINATION CONTRACT (critical):** every harvest agent paginates to the cycle START or
 an empty page — never stop after N pages. Stopping early skews evidence to recent months
-and produces a wrong level assessment. Applies to A, B, C, D, E, F, H, I.
+and produces a wrong level assessment. Applies to A–J (every dated source); H/I/J
+(Cursor / Calendar / shoutouts) are paginated to cycle-start but are sparse by nature.
 
 **⚠ LARGE MCP RESULTS → FILE, NEVER INTO CONTEXT.** Plane `list_work_items` and Calendar
 `list_events` over a 12-month range routinely exceed the tool-result token cap and get spilled
@@ -284,10 +286,10 @@ parse with `python3 -c "json.load(open(f), strict=False)"` instead.
 | E | Slack channels | `e_slack_channels.md` | Slack MCP (direct) |
 | F | Slack DMs | `f_slack_dms.md` | Slack MCP (direct) |
 | G | Claude Code sessions | `g_claude_sessions.md` | Bash + delegate to tag |
-| H | Google Calendar events | `h_cursor_sessions.md`→`i_calendar_meetings.md` | Calendar MCP |
-| I | Slack shoutouts | `j_shoutouts.md` | Slack MCP |
+| H | Cursor sessions | `h_cursor_sessions.md` | `helpers/harvest_cursor.py` |
+| I | Google Calendar events | `i_calendar_meetings.md` | Calendar MCP |
+| J | Slack shoutouts | `j_shoutouts.md` | Slack MCP |
 | K | **Code-artifact deep-dives** (flagship modules the user named in the brief) | `k_<artifact>_deepdive.md` | `Agent` (general-purpose, sonnet) reading the local repo + its PRs via `gh` |
-| — | Cursor sessions | `h_cursor_sessions.md` | `helpers/harvest_cursor.py` |
 
 **Agent K is the single highest-value addition** (proven on a real run). For each flagship
 module the user calls out in `00_user_brief.md` (a plugin they own, a migration engine, a
@@ -352,7 +354,8 @@ Any `[SPARSE]` file (excluding shoutouts/upstream, sparse by nature) means an ag
 early — re-run that agent paginating to cycle start before Phase 2.
 
 **URL backfill:** Plane URLs are constructible from sequence id
-(`https://projects.arbisoft.com/<workspace>/browse/<SEQ>/`). For Slack atoms missing
+(`<plane_host>/<plane_workspace_slug>/browse/<SEQ>/` — both from `.sophia/config.json`;
+defaults `https://projects.arbisoft.com` / `arbisoft`). For Slack atoms missing
 permalinks, re-read the ±1-day epoch window, match by excerpt, build
 `https://<team>.slack.com/archives/<channel>/p<ts_no_dot>`. Claude/Cursor sessions aren't
 URL-shareable — mark Tier B (Drive screenshot during draft).
@@ -542,7 +545,11 @@ calibration. Bump the changelog.
 
 - **GitHub**: `gh` CLI only — never the GitHub MCP.
 - **Slack**: `mcp__claude_ai_Slack__*` only.
-- **Plane**: `mcp__plane-arbisoft__*` directly (MCP unavailable inside opencode subagents).
+- **Tracker (Plane/Jira/…)**: call your own tracker MCP directly (MCP unavailable inside
+  opencode subagents). The reference setup uses Arbisoft's Plane (`mcp__plane-arbisoft__*`);
+  other users substitute their MCP name and add it to this skill's `allowed-tools` (or accept a
+  one-time permission prompt). Host/workspace come from `plane_host`/`plane_workspace_slug` in
+  config — not hardcoded.
 - **delegate / opencode**: provider+model per the `delegate` skill; pass `directory` = the workspace root, not a subfolder; strip `<think>…</think>`; batch ≤10.
 - **Tokens/secrets**: refresh + access tokens live only in `$WORKDIR/.sophia/` (chmod 600, gitignored) or env vars. Never paste a token into chat, never commit one, never log one in full.
 - **Sub-agents**: summaries only — never read a harvest agent's full file into context.

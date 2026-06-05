@@ -3,11 +3,18 @@
 harvest_plane.py — Fetch Plane work items for a user via REST API
 Usage: python3 harvest_plane.py <workspace_slug> <project_id> <date_from> <output_file> [assignee_name]
 
-Requires: PLANE_TOKEN env var (PAT token)
-Falls back to mcp__plane-arbisoft__* tools if no PLANE_TOKEN.
+Requires: PLANE_TOKEN env var (PAT token).
+Host: defaults to the company self-hosted Plane (https://projects.arbisoft.com). For a
+different host (e.g. Plane Cloud https://api.plane.so), set
+    PLANE_API_HOST=https://<your-plane-host>
+Self-hosted TLS caveat: macOS system Python 3.8 can fail cert verification against a
+self-hosted host, and the sandbox blocks disabling TLS verification. If urllib raises a
+cert error, harvest that host with `curl` instead (it uses the system cert store) and
+parse the saved pages with this script's filter logic, or call your Plane MCP directly.
 
-Note: If using MCP tools directly (recommended for Waleed's workspace), skip this script
-and call mcp__plane-arbisoft__list_work_items from Claude directly.
+If you have a Plane MCP connected, calling it from Claude is simpler than this script —
+but the MCP wrapper may drop `next_cursor` (can't paginate a full year), so the REST path
+here is the reliable way to cover a complete cycle.
 """
 
 import json
@@ -23,7 +30,8 @@ def fetch_plane(workspace_slug, project_id, date_from, output_file, assignee_nam
         print("ERROR: PLANE_TOKEN not set. Set it or use MCP tools directly.", file=sys.stderr)
         sys.exit(1)
 
-    base_url = f"https://api.plane.so/api/v1/workspaces/{workspace_slug}/projects/{project_id}/issues/"
+    host = os.environ.get("PLANE_API_HOST", "https://projects.arbisoft.com").rstrip("/")
+    base_url = f"{host}/api/v1/workspaces/{workspace_slug}/projects/{project_id}/issues/"
     headers = {
         "X-Api-Key": token,
         "Content-Type": "application/json",

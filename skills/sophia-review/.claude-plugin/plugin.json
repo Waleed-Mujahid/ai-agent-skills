@@ -1,6 +1,6 @@
 {
   "name": "sophia-review",
-  "description": "End-to-end Sophia competency self-review assistant — phased chat that configures auth + MCPs, harvests a year of evidence in parallel, builds an evidence map, surfaces next-level rubric differentials, drafts rubric-aligned answers, and submits + verifies them via the Sophia API.",
+  "description": "Write a Sophia competency self-review (the self-evaluation on platformsophia.com): a phased chat that configures auth + MCPs, harvests a year of evidence in parallel, maps it to rubric levels, surfaces next-level differentials, drafts rubric-aligned answers, and submits + verifies them via the Sophia API. For Sophia / competency self-reviews, performance self-assessments, and annual self-evaluations — not code/PR review.",
   "version": "1.0.0",
   "author": {
     "name": "Waleed Mujahid (Waleed-Mujahid)"

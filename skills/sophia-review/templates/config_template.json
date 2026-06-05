@@ -9,6 +9,7 @@
   "cycle_end": "YYYY-MM-DD",
   "github_username": "",
   "github_orgs": ["edly-io", "openedx", "overhangio"],
+  "plane_host": "https://projects.arbisoft.com",
   "plane_workspace_slug": "arbisoft",
   "plane_projects": [],
   "github_project_boards": [],

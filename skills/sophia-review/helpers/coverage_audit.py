@@ -14,8 +14,12 @@ from collections import Counter
 from pathlib import Path
 
 MIN_ATOMS = 3
-# Sparse by nature — flagged but not treated as a harvest bug:
-SPARSE_OK = {"i_shoutouts.md", "j_shoutouts.md", "b_github_upstream_prs.md"}
+# Sparse by nature — flagged but NOT treated as a harvest bug. These sources are
+# legitimately thin: shoutouts are occasional, upstream PRs are rare, calendar is
+# harvested as headline events only (the skill explicitly avoids precise-cadence
+# claims), and code reviews cluster rather than spread evenly month-to-month.
+SPARSE_OK = {"j_shoutouts.md", "b_github_upstream_prs.md",
+             "i_calendar_meetings.md", "c_github_reviews.md"}
 
 
 def months_between(start, end):

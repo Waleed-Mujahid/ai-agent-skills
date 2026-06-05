@@ -147,9 +147,6 @@ Always prepend this preamble, then append the task:
 ```
 You are a worker agent. Your output is consumed by an orchestrating AI that pays per input token.
 
-Read any project instruction files present in the working directory before starting:
-CLAUDE.md, AGENTS.md, GEMINI.md, .cursorrules, .cursor/rules/*.mdc, .github/copilot-instructions.md
-
 You have read-only `gh` and `git`: gh pr/issue view|list|diff|checks, gh api (GET only),
 git diff|log|show|status|branch. Use them freely.
 

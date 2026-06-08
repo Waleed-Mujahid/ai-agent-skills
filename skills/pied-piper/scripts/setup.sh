@@ -7,6 +7,7 @@
 # Usage:  setup.sh [--fast-model <id>] [--reason-model <id>] [--include-project] [--no-lsp]
 set -uo pipefail
 
+PI_PINNED="0.78.1"   # verified-working pi.dev version; setup warns if a different one is installed
 PROVIDER="arbisoft-llm"
 PROVIDER_BASE_URL="https://litellm.arbisoft.com/v1"
 FAST_MODEL="groq/qwen/qwen3-32b"        # search, review (verified working)
@@ -32,8 +33,15 @@ warn(){ print -r -- "  ⚠ $*"; }; die(){ print -r -- "  ✗ $*"; exit 1; }
 
 say "═══ pied-piper setup (arbisoft LiteLLM) ═══"
 command -v jq >/dev/null || die "jq required (brew install jq)"
-command -v pi >/dev/null || die "pi not installed (npm i -g @earendil-works/pi-coding-agent)"
-ok "pi $(pi --version 2>/dev/null)"
+command -v pi >/dev/null || die "pi not installed (npm i -g @earendil-works/pi-coding-agent@$PI_PINNED)"
+PI_VER="$(pi --version 2>&1 | head -1 | tr -d ' ')"
+if [[ "$PI_VER" == "$PI_PINNED" ]]; then
+  ok "pi $PI_VER (pinned)"
+else
+  warn "pi $PI_VER installed — verified version is $PI_PINNED."
+  warn "version drift has caused silent breakage before (env-var expansion). To pin:"
+  warn "    npm i -g @earendil-works/pi-coding-agent@$PI_PINNED"
+fi
 mkdir -p "$PI_AGENT"
 
 # ── API key ───────────────────────────────────────────────────────────────────

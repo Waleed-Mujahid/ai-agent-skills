@@ -135,10 +135,12 @@ PIPER_REASON_MODEL="groq/openai/gpt-oss-120b"  # debug, trace, exec (reasoning v
 
 ### Requirements
 
-- `pi` installed: `npm i -g @earendil-works/pi-coding-agent`
+- `pi` **pinned to 0.78.1**: `npm i -g @earendil-works/pi-coding-agent@0.78.1` — this is the
+  verified version. Newer versions have changed behavior silently (e.g. env-var expansion in
+  `models.json`); setup warns if a different version is installed.
 - `jq` installed: `brew install jq`
 - A LibreChat / LiteLLM API key (`LIBRE_CHAT_API_KEY`) with access to `litellm.arbisoft.com`
-- macOS/zsh (the scripts target zsh)
+- **macOS + zsh only.** Scripts target zsh and write to `~/.zshrc`. Linux/bash is not supported yet.
 
 ---
 

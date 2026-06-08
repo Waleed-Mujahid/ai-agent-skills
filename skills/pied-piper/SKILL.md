@@ -36,6 +36,12 @@ same models.json works on any machine as long as the env var is exported. Braces
 some pi versions only expand `${VAR}`, not bare `$VAR`, which silently yields an empty key
 and a dead smoke test.
 
+## Requirements
+
+- **pi pinned to 0.78.1**: `npm i -g @earendil-works/pi-coding-agent@0.78.1`. Setup warns if a
+  different version is installed — version drift has silently broken things (env-var expansion).
+- **macOS + zsh only.** Scripts target zsh and write `~/.zshrc`. Linux/bash unsupported.
+
 ## Run it
 
 The script is executable and safe to run directly — just invoke it via Bash:

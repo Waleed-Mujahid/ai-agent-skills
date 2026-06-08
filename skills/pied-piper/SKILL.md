@@ -30,9 +30,11 @@ a Claude context.
 ## API key
 
 Setup reads `LIBRE_CHAT_API_KEY` from the environment. If unset, it prompts for the
-key and saves it to `~/.zshrc`. The key is written as a reference (`"$LIBRE_CHAT_API_KEY"`)
-in `~/.pi/agent/models.json` — pi expands it at runtime, so the same models.json
-works on any machine as long as the env var is exported.
+key and saves it to `~/.zshrc`. The key is written as a **braced** reference
+(`"${LIBRE_CHAT_API_KEY}"`) in `~/.pi/agent/models.json` — pi expands it at runtime, so the
+same models.json works on any machine as long as the env var is exported. Braces matter:
+some pi versions only expand `${VAR}`, not bare `$VAR`, which silently yields an empty key
+and a dead smoke test.
 
 ## Run it
 

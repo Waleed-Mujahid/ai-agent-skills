@@ -55,7 +55,7 @@ MODELS_JSON="$PI_AGENT/models.json"
 PROVIDER_ENTRY='{
   "baseUrl": "https://litellm.arbisoft.com/v1",
   "api": "openai-completions",
-  "apiKey": "$LIBRE_CHAT_API_KEY",
+  "apiKey": "${LIBRE_CHAT_API_KEY}",
   "models": [
     {"id": "cerebras/gpt-oss-120b",                          "name": "GPT-OSS 120B Cerebras (reasoning)", "reasoning": true, "compat": {"requiresReasoningContentOnAssistantMessages": false}},
     {"id": "cerebras/zai-glm-4.7",                           "name": "GLM 4.7 (fast)"},
@@ -219,14 +219,22 @@ fi
 
 # ── smoke test ────────────────────────────────────────────────────────────────
 say ""; say "═══ smoke test ═══"
-say "Checking fast model ($FAST_MODEL)…"
-pi -p "Reply with exactly: OK" \
-  --provider "$PROVIDER" --model "$FAST_MODEL" --no-session --mode text 2>/dev/null \
-  && ok "fast model ($FAST_MODEL) responded" || warn "fast model silent — verify: pi -p 'Reply: OK' --provider $PROVIDER --model $FAST_MODEL --no-session --mode text"
+# --no-session: throwaway one-shot checks, no reason to persist them.
+# stderr NOT suppressed — a silent failure here is usually an unexpanded API key or dead model;
+# you want to see the actual error, not a blank line.
+smoke(){  # $1=label $2=model
+  local out
+  out="$(pi -p "Reply with exactly: OK" --provider "$PROVIDER" --model "$2" --no-session --mode text 2>&1)"
+  if print -r -- "$out" | grep -q "OK"; then
+    ok "$1 model ($2) responded"
+  else
+    warn "$1 model ($2) did NOT respond — output below:"
+    print -r -- "$out" | sed 's/^/      /'
+    warn "common cause: LIBRE_CHAT_API_KEY unset/unexpanded, or model id dead. Check: pi --list-models"
+  fi
+}
+smoke "fast" "$FAST_MODEL"
 sleep 2
-say "Checking reason model ($REASON_MODEL)…"
-pi -p "Reply with exactly: OK" \
-  --provider "$PROVIDER" --model "$REASON_MODEL" --no-session --mode text 2>/dev/null \
-  && ok "reason model ($REASON_MODEL) responded" || warn "reason model silent — verify: pi -p 'Reply: OK' --provider $PROVIDER --model $REASON_MODEL --no-session --mode text"
+smoke "reason" "$REASON_MODEL"
 say ""; say "Done. Search/review → \$PIPER_FAST_MODEL ($FAST_MODEL). Debug/build → \$PIPER_REASON_MODEL ($REASON_MODEL)."
 say "Call pi directly: source ~/.pi/agent/piedpiper.env && pi -p '<task>' --provider \"\$PIPER_PROVIDER\" --model \"\$PIPER_FAST_MODEL\" --no-session --mode text"

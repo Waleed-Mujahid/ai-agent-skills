@@ -71,17 +71,23 @@ Playwright/github/etc., the bridge works. Read that back to the user. Troublesho
 Idempotent — re-run any time (after installing a new MCP/skill in Claude, or to
 update the bridged MCP server list).
 
-## Pi Agents — subprocess workers acting like OMC agents
+## Pi Agents — interactive workers Claude drives like OMC agents
 
-`agents/` directory contains shell scripts that wrap `pi -p` with specialized personas. Same patterns as OMC agents, zero Claude tokens, free models via arbisoft LiteLLM.
+One driver: `agents/piagent.sh` (shell fn `pa` after setup). Each worker keeps a **persistent pi session**, so Claude orchestrates it turn-by-turn — send a turn, read the reply, send the next. The worker retains full context across calls. Claude is the "person" on the other end. Zero Claude tokens; free models via arbisoft LiteLLM. No tmux panes / inbox files (OMC's mechanism) — state lives in pi's session store, keyed by `--session-id`.
 
 ```bash
-# Dispatcher — pick agent by name
-~/.claude/skills/pied-piper/agents/run.sh <agent> "<task>"
+pa <agent> <session> "<turn instruction>"          # session fn (after `source ~/.zshrc`)
+~/.claude/skills/pied-piper/agents/piagent.sh ...   # or full path
 
-# Or call directly
-~/.claude/skills/pied-piper/agents/playwright.sh "<browser task>"
+# Interactive loop — Claude drives:
+pa explore auth "find every caller of get_current_site in /repo"
+pa explore auth "now narrow to the ones inside middleware"   # same worker, remembers turn 1
+pa --list                                            # list active worker sessions
 ```
+
+- `<session>` = any name. **Same name reuses the worker's context**; first call creates it.
+- **Single turn == a one-shot. Multiple turns (same session) == an interactive worker.** No separate one-shot scripts.
+- Persona is re-injected each turn (pi doesn't persist the system prompt); message history persists.
 
 | Agent | Alias | Model | Tools | Use for |
 |-------|-------|-------|-------|---------|
@@ -94,7 +100,7 @@ update the bridged MCP server list).
 | `qa` | `tmux` | reason | read/bash | interactive CLI testing via tmux |
 | `playwright` | `pw` | reason | playwright MCP | browser automation, UI testing |
 
-**Playwright agent** omits `--no-extensions` (pi-mcp must load for playwright MCP). Browser opens visibly.
+**Playwright agent** omits `--no-extensions` (pi-mcp must load for playwright MCP). Browser opens visibly and persists across turns — drive a flow step by step.
 
 ## After setup
 

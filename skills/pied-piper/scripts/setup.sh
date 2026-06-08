@@ -176,23 +176,35 @@ Quote tool output verbatim in your response." \
 ```
 Note: omit `--no-extensions` so pi-mcp loads playwright MCP. Browser WILL open.
 
-**Pi agents** — subprocess workers acting like OMC agents (zero Claude tokens):
+**Pi agents (interactive)** — pi workers Claude drives turn-by-turn, OMC-style (zero Claude tokens).
+Each worker keeps a persistent pi session; Claude sends a turn, reads the reply, sends the next.
 ```bash
-~/.claude/skills/pied-piper/agents/run.sh <agent> "<task>"
-# agents: explore | debug | trace | exec | review | security | qa | playwright (pw)
-# playwright opens a browser — omits --no-extensions automatically
+pa <agent> <session> "<turn instruction>"     # `pa` is a shell fn added by setup; or call the full path:
+~/.claude/skills/pied-piper/agents/piagent.sh <agent> <session> "<turn instruction>"
+# agents: explore(ex) debug(debugger) trace(tracer) exec(executor) review(reviewer) security(sec) qa(tmux) playwright(pw)
+# <session> = any name; same name reuses the worker's context. First call creates it.
+# Single-turn call == a one-shot. Multi-turn (same session) == an interactive worker.
+# playwright keeps the browser open across turns; omits --no-extensions automatically.
 ```
 MD
   ok "injected pi direct-call block → $GLOBAL_CLAUDE_MD"
 fi
 
-# ── ensure agents are executable ─────────────────────────────────────────────
+# ── ensure piagent driver is executable + install `pa` shell function ─────────
 AGENTS_DIR="${0:A:h}/../agents"
-if [[ -d "$AGENTS_DIR" ]]; then
-  chmod +x "$AGENTS_DIR"/*.sh 2>/dev/null
-  ok "agents executable ($(ls "$AGENTS_DIR"/*.sh 2>/dev/null | wc -l | tr -d ' ') scripts)"
+PIAGENT="$AGENTS_DIR/piagent.sh"
+if [[ -f "$PIAGENT" ]]; then
+  chmod +x "$PIAGENT" 2>/dev/null
+  ok "piagent driver executable → $PIAGENT"
+  # `pa` shell function so workers are callable from anywhere (no full path, no sudo)
+  if grep -q 'pied-piper piagent' "$HOME/.zshrc" 2>/dev/null; then
+    ok "pa() already in ~/.zshrc"
+  else
+    print -r -- "\n# pied-piper piagent — interactive pi.dev workers (call \`pa <agent> <session> <msg>\`)\npa() { $PIAGENT \"\$@\"; }" >> "$HOME/.zshrc"
+    ok "added pa() to ~/.zshrc — run 'source ~/.zshrc' or open a new shell"
+  fi
 else
-  warn "agents dir not found at $AGENTS_DIR — run from skill directory"
+  warn "piagent.sh not found at $PIAGENT — run from skill directory"
 fi
 
 # ── smoke test ────────────────────────────────────────────────────────────────

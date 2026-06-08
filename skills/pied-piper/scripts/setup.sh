@@ -175,8 +175,24 @@ Quote tool output verbatim in your response." \
   --no-skills
 ```
 Note: omit `--no-extensions` so pi-mcp loads playwright MCP. Browser WILL open.
+
+**Pi agents** — subprocess workers acting like OMC agents (zero Claude tokens):
+```bash
+~/.claude/skills/pied-piper/agents/run.sh <agent> "<task>"
+# agents: explore | debug | trace | exec | review | security | qa | playwright (pw)
+# playwright opens a browser — omits --no-extensions automatically
+```
 MD
   ok "injected pi direct-call block → $GLOBAL_CLAUDE_MD"
+fi
+
+# ── ensure agents are executable ─────────────────────────────────────────────
+AGENTS_DIR="${0:A:h}/../agents"
+if [[ -d "$AGENTS_DIR" ]]; then
+  chmod +x "$AGENTS_DIR"/*.sh 2>/dev/null
+  ok "agents executable ($(ls "$AGENTS_DIR"/*.sh 2>/dev/null | wc -l | tr -d ' ') scripts)"
+else
+  warn "agents dir not found at $AGENTS_DIR — run from skill directory"
 fi
 
 # ── smoke test ────────────────────────────────────────────────────────────────

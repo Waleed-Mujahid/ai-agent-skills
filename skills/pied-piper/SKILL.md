@@ -71,6 +71,31 @@ Playwright/github/etc., the bridge works. Read that back to the user. Troublesho
 Idempotent — re-run any time (after installing a new MCP/skill in Claude, or to
 update the bridged MCP server list).
 
+## Pi Agents — subprocess workers acting like OMC agents
+
+`agents/` directory contains shell scripts that wrap `pi -p` with specialized personas. Same patterns as OMC agents, zero Claude tokens, free models via arbisoft LiteLLM.
+
+```bash
+# Dispatcher — pick agent by name
+~/.claude/skills/pied-piper/agents/run.sh <agent> "<task>"
+
+# Or call directly
+~/.claude/skills/pied-piper/agents/playwright.sh "<browser task>"
+```
+
+| Agent | Alias | Model | Tools | Use for |
+|-------|-------|-------|-------|---------|
+| `explore` | `ex` | fast | read/grep/find | find files, symbols, patterns |
+| `debug` | `debugger` | reason | read/grep/find | root-cause analysis |
+| `trace` | `tracer` | reason | read/grep/find | causal tracing, competing hypotheses |
+| `exec` | `executor` | reason | read/grep/find/**edit/write** | minimal implementation |
+| `review` | `reviewer` | fast | read/grep/find | severity-rated code review |
+| `security` | `sec` | reason | read/grep/find | OWASP audit, secrets scan |
+| `qa` | `tmux` | reason | read/bash | interactive CLI testing via tmux |
+| `playwright` | `pw` | reason | playwright MCP | browser automation, UI testing |
+
+**Playwright agent** omits `--no-extensions` (pi-mcp must load for playwright MCP). Browser opens visibly.
+
 ## After setup
 
 `pi -p` calls route through arbisoft LiteLLM via the rules injected into `~/.claude/CLAUDE.md`.

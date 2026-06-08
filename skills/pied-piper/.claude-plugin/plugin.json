@@ -1,0 +1,9 @@
+{
+  "name": "pied-piper",
+  "description": "Gives Claude a free team of workers on Arbisoft's LiteLLM — including a browser. One-command setup turns pi.dev into a delegation backend that inherits your Claude Code MCP servers + skills, then exposes interactive multi-turn workers (explore, debug, trace, exec, review, security, qa, playwright) Claude drives turn-by-turn. Grunt work (repo search, diff review, browser automation, refactors) runs on free models; only distilled findings re-enter Claude's context. Lighter, interactive successor to delegate.",
+  "version": "2.0.0",
+  "author": {
+    "name": "Waleed Mujahid (Waleed-Mujahid)"
+  },
+  "commands": ["./SKILL.md"]
+}

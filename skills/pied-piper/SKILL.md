@@ -1,13 +1,14 @@
 ---
 name: pied-piper
 description: >-
-  One-command setup that turns pi.dev into a batteries-included free-model
-  delegation backend, running on arbisoft LiteLLM, by inheriting THIS machine's
-  Claude Code MCP servers and skills. Run this whenever the user wants to install,
-  set up, configure, repair, or re-sync "pied piper" or the pi delegation backend —
-  or asks "why isn't pi working" or "set up pi". After setup, call `pi -p` directly
-  via Bash for grunt work (codebase search, flow tracing, diff review, refactors/tests)
-  on free models via arbisoft LiteLLM, saving Claude tokens.
+  Gives Claude a free team of workers on arbisoft LiteLLM — including a browser. One-command
+  setup turns pi.dev into a delegation backend that inherits THIS machine's Claude Code MCP
+  servers and skills, then exposes interactive multi-turn workers (explore, debug, trace, exec,
+  review, security, qa, playwright) Claude drives turn-by-turn via `pa <agent> <session> <msg>`.
+  Run this whenever the user wants to install, set up, configure, repair, or re-sync "pied piper"
+  or the pi delegation backend — or asks "why isn't pi working" or "set up pi". After setup,
+  delegate grunt work (codebase search, flow tracing, diff review, refactors, browser automation)
+  to free models so it never enters Claude's context — lighter, interactive successor to delegate.
 trigger: /pied-piper
 user_invocable: true
 allowed-tools: Bash, Read, Edit

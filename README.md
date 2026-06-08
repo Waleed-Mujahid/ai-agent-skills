@@ -25,7 +25,8 @@ ai-agent-skills/
 
 | Skill | File | Description |
 |-------|------|-------------|
-| `delegate` | [skills/delegate/delegate.md](skills/delegate/delegate.md) | Delegates grunt work (search, review, refactor, tests) to opencode running free LiteLLM models. Saves Claude tokens by routing non-reasoning tasks to free models. |
+| `pied-piper` | [skills/pied-piper/README.md](skills/pied-piper/README.md) | Gives Claude a free team of workers on Arbisoft's LiteLLM — **including a browser**. Interactive multi-turn workers (explore/debug/trace/exec/review/security/qa/playwright) Claude drives turn-by-turn; grunt work runs on free models, only findings re-enter Claude's context. Lighter, interactive successor to `delegate`. |
+| `delegate` | [skills/delegate/delegate.md](skills/delegate/delegate.md) | Delegates grunt work (search, review, refactor, tests) to opencode running free LiteLLM models. Power-user alternative to `pied-piper` (heavier opencode runtime). |
 | `sophia-review` | [skills/sophia-review/sophia-review.md](skills/sophia-review/sophia-review.md) | End-to-end Sophia competency self-review assistant. Phased chat: configures auth + MCPs, harvests a year of evidence (GitHub/Plane/Slack/Calendar/Claude+Cursor sessions) in parallel, builds an evidence map, surfaces next-level rubric differentials, asks targeted gap questions, drafts rubric-aligned answers, and submits + verifies them via the Sophia API. |
 
 ---
@@ -43,6 +44,7 @@ ai-agent-skills/
 **Step 2 — Install a skill**
 
 ```shell
+/plugin install pied-piper@ai-agent-skills
 /plugin install delegate@ai-agent-skills
 /plugin install sophia-review@ai-agent-skills
 ```

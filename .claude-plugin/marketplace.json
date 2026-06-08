@@ -8,9 +8,19 @@
   },
   "plugins": [
     {
+      "name": "pied-piper",
+      "source": "./skills/pied-piper",
+      "description": "Gives Claude a free team of workers on Arbisoft's LiteLLM — including a browser. Interactive multi-turn workers (explore/debug/trace/exec/review/security/qa/playwright) Claude drives turn-by-turn; grunt work runs on free models, only findings re-enter Claude's context. Lighter, interactive successor to delegate.",
+      "version": "2.0.0",
+      "author": {
+        "name": "Waleed Mujahid (Waleed-Mujahid)"
+      },
+      "category": "productivity"
+    },
+    {
       "name": "delegate",
       "source": "./skills/delegate",
-      "description": "Delegates grunt work to opencode running free LiteLLM models — saves Claude tokens.",
+      "description": "Delegates grunt work to opencode running free LiteLLM models — saves Claude tokens. (Power-user alternative to pied-piper; pied-piper is the lighter, interactive default.)",
       "version": "1.1.1",
       "author": {
         "name": "Waleed Mujahid (Waleed-Mujahid)"

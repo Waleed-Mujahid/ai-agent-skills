@@ -77,17 +77,27 @@ pi --list-models 2>&1 | grep -q "^$PROVIDER " \
   && ok "arbisoft-llm visible to pi" \
   || warn "provider not visible yet — restart shell if this persists"
 
-# ── write env file ────────────────────────────────────────────────────────────
-[[ -n "$FAST_OV" ]]   && FAST_MODEL="$FAST_OV"
+# ── write env file (config source of truth) ─────────────────────────────────
+# Precedence: --flag override > existing piedpiper.env value (user edits preserved) > default.
+if [[ -f "$ENV_FILE" ]]; then
+  EXIST_PROVIDER="$(sed -n 's/^PIPER_PROVIDER="\{0,1\}\([^"]*\)"\{0,1\}/\1/p' "$ENV_FILE" | head -1)"
+  EXIST_FAST="$(sed -n 's/^PIPER_FAST_MODEL="\{0,1\}\([^"#]*\).*/\1/p' "$ENV_FILE" | head -1 | tr -d ' ')"
+  EXIST_REASON="$(sed -n 's/^PIPER_REASON_MODEL="\{0,1\}\([^"#]*\).*/\1/p' "$ENV_FILE" | head -1 | tr -d ' ')"
+  [[ -n "$EXIST_PROVIDER" ]] && PROVIDER="$EXIST_PROVIDER"
+  [[ -n "$EXIST_FAST" ]]     && FAST_MODEL="$EXIST_FAST"
+  [[ -n "$EXIST_REASON" ]]   && REASON_MODEL="$EXIST_REASON"
+fi
+[[ -n "$FAST_OV" ]]   && FAST_MODEL="$FAST_OV"      # explicit flags always win
 [[ -n "$REASON_OV" ]] && REASON_MODEL="$REASON_OV"
 
 cat > "$ENV_FILE" <<EOF
-# Written by pied-piper setup. Source this before calling pi directly.
+# pied-piper config — edit to swap models/provider; setup preserves these unless you pass flags.
+# Source this before calling pi directly. List available models: pi --list-models
 PIPER_PROVIDER="$PROVIDER"
 PIPER_FAST_MODEL="$FAST_MODEL"       # search, review (fast)
-PIPER_REASON_MODEL="$REASON_MODEL"   # debug, build (reasoning model)
+PIPER_REASON_MODEL="$REASON_MODEL"   # debug, trace, exec (reasoning model)
 EOF
-ok "models — fast: $FAST_MODEL | reason: $REASON_MODEL  (→ $ENV_FILE)"
+ok "models — fast: $FAST_MODEL | reason: $REASON_MODEL  (→ $ENV_FILE, edits preserved on re-run)"
 
 # ── pi-mcp + pi-lsp ───────────────────────────────────────────────────────────
 pi list 2>/dev/null | grep -q "pi-mcp" || { say "Installing @spences10/pi-mcp…"; pi install npm:@spences10/pi-mcp >/dev/null 2>&1; }

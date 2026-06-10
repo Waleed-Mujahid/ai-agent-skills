@@ -35,6 +35,25 @@ Every answer paragraph must follow this structure:
 - **Un-linkable proof → Drive.** Private DMs, Claude/Cursor sessions, calendar headcount, git
   terminal: reference as `<a href="DRIVE_FOLDER_URL">… (SS-NN)</a>`; the user swaps one URL.
 
+## The grader is an AI — write for one
+
+The score comes from an LLM that sees only the rubric and the answer text. It cannot click
+links and knows nothing about the company's internal projects. Consequences:
+
+- **Text must clear the level with every link dead.** The sentence around each `<a href>`
+  states what the artifact proves ("merged PR adding 15 management commands (<a>#45</a>)").
+  Links exist for the human who spot-checks or appeals — the AI never opens them.
+- **Self-contained context.** One clause of explanation the first time an internal name
+  appears ("edly-panel, our customer-facing admin dashboard"). An unexplained codename is
+  noise to the grader.
+- **Echo the target level's own vocabulary** where it's true — "owned the module end to end",
+  "go-to person in the team" — so the semantic match to the level phrase is explicit. Echo,
+  don't stuff: a keyword-stuffed answer reads worse to the human on appeal.
+- **First paragraph carries the strongest level-proving atom.** LLM graders anchor on
+  openings.
+- **Concrete numbers beat adjectives** — but only artifact-verified numbers (from the
+  evidence map's `verified` atoms), never remembered ones.
+
 ## De-jargon (write plain, verbose explanations)
 
 - Explain the *what and why*, not the internal mechanism name. Good: "the same code runs
